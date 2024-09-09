@@ -5,10 +5,12 @@ import numpy as np
 import threading
 
 class CameraRTSP:
-    def __init__(self, link, timer):
+    def __init__(self, name, link, timer, threshold):
         if not self.is_valid_rtsp(link):
             raise ValueError(f"O link fornecido não é um RTSP válido ou não foi possível abrir a transmissão: {link}")
         self.link = link
+        self.name = name
+        self.threshold = threshold
         self.timer = timer * 60
         self.start_time = time.time()
         self.frame = None  
@@ -40,7 +42,6 @@ class CameraRTSP:
 
         cap.release()
 
-    
     def get_frame(self):
         # retorna o frame atual capturado pela thread
         with self.lock:
@@ -48,7 +49,7 @@ class CameraRTSP:
                 return self.frame
             else:
                 raise ValueError("Nenhum frame disponível no momento")
-
+            
     def check(self):
         frame = self.get_frame() # pega o frame atual
 
@@ -63,7 +64,7 @@ class CameraRTSP:
         score = round(score * 100, 2)
 
         is_ok = True
-        if score < 50: # threshhold
+        if score < self.threshold:
             is_ok = False
 
         print(f"Similaridade: {score}%")
@@ -91,8 +92,14 @@ class CameraRTSP:
         self.timer = new_timer * 60
         self.start_time = time.time()
 
+    def change_name(self, new_name):
+        self.name = new_name
+
+    def change_threshold(self, new_threshold):
+        self.threshold = new_threshold
+
     def release(self):
         self.is_running = False
         self.capture_thread.join()
-        print("Capture encerrada e thread finalizada.")
+        print("Captura encerrada e thread finalizada.")
 
